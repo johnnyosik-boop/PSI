@@ -1,0 +1,169 @@
+---
+title: "Analiza tekstu i chmury słów"
+author: "Projekt analizy tekstu"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 7,
+  fig.align = "center"
+)
+```
+
+# Instalacja i ładowanie pakietów
+
+```{r}
+# install.packages(c("tm","wordcloud","RColorBrewer","ggplot2","knitr"))
+
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+library(ggplot2)
+library(knitr)
+```
+
+# Funkcje
+
+## Funkcja przetwarzania tekstu
+
+```{r}
+process_text <- function(file_path) {
+
+  text <- tolower(readLines(file_path, encoding = "UTF-8", warn = FALSE))
+
+  text <- removePunctuation(text)
+  text <- removeNumbers(text)
+
+  text <- removeWords(text, stopwords("en"))
+
+  words <- unlist(strsplit(text, "\\s+"))
+
+  words <- words[words != ""]
+
+  return(words)
+}
+```
+
+## Funkcja obliczania częstości słów
+
+```{r}
+word_frequency <- function(words) {
+
+  freq <- table(words)
+
+  freq_df <- data.frame(
+    word = names(freq),
+    freq = as.numeric(freq)
+  )
+
+  freq_df <- freq_df[order(-freq_df$freq), ]
+  rownames(freq_df) <- NULL
+
+  return(freq_df)
+}
+```
+
+## Funkcja tworzenia chmury słów
+
+```{r}
+plot_wordcloud <- function(freq_df, title_text, color_palette = "Dark2") {
+
+  wordcloud(
+    words = freq_df$word,
+    freq = freq_df$freq,
+    min.freq = 16,
+    colors = brewer.pal(8, color_palette)
+  )
+
+  title(title_text)
+}
+```
+
+# Analiza jednego pliku
+
+```{r}
+file_path <- "C:/Users/48606/Desktop/PSI/Biden2021.txt"
+
+file_name <- basename(file_path)
+
+words <- process_text(file_path)
+
+freq_df <- word_frequency(words)
+
+plot_wordcloud(freq_df, paste("Chmura słów -", file_name))
+
+kable(head(freq_df,10), caption = paste("Najczęstsze słowa -", file_name))
+```
+
+# Usuwanie dodatkowych stop words
+
+```{r}
+custom_stopwords <- c("—","–","’s","’re")
+
+words <- words[!words %in% custom_stopwords]
+
+freq_df <- word_frequency(words)
+
+plot_wordcloud(freq_df, paste("Chmura słów po usunięciu dodatkowych stopwords -", file_name))
+
+kable(head(freq_df,10), caption = paste("Najczęstsze słowa po czyszczeniu -", file_name))
+```
+
+# Analiza dwóch plików jednocześnie
+
+```{r}
+file_paths <- c(
+"C:/Users/48606/Desktop/PSI/Biden2021.txt",
+"C:/Users/48606/Desktop/PSI/Biden2024.txt"
+)
+
+for(file_path in file_paths){
+
+  file_name <- basename(file_path)
+
+  words <- process_text(file_path)
+
+  freq_df <- word_frequency(words)
+
+  plot_wordcloud(freq_df, paste("Chmura słów -", file_name))
+
+  print(kable(
+    head(freq_df,10),
+    caption = paste("Najczęstsze słowa -", file_name)
+  ))
+}
+```
+
+# Analiza dwóch plików z dodatkowymi stop words
+
+```{r}
+custom_stopwords <- c("—","–","’s","’re")
+
+for(file_path in file_paths){
+
+  file_name <- basename(file_path)
+
+  words <- process_text(file_path)
+
+  words <- words[!words %in% custom_stopwords]
+
+  freq_df <- word_frequency(words)
+
+  plot_wordcloud(freq_df, paste("Chmura słów po czyszczeniu -", file_name))
+
+  print(kable(
+    head(freq_df,10),
+    caption = paste("Najczęstsze słowa po czyszczeniu -", file_name)
+  ))
+}
+```
