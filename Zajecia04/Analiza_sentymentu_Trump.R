@@ -1,5 +1,5 @@
 # Analiza sentymentu
-
+#install.packages(c("tm", "tidyverse", "textdata", "ggplot2","ggthemes"))
 library(tm)
 library(tidyverse)
 library(tidytext)
@@ -13,16 +13,16 @@ library(ggthemes)
 
 # Wczytanie danych tekstowych
 # Odczytanie lokalnego pliku .txt
-text <- readLines(file.choose(), encoding="UTF-8")
+tekst <- readLines("C:/Users/48606/Desktop/PSI/Trump - State of the Union_25.02.2026.txt", encoding = "UTF-8")
 
 
-docs <- VCorpus(VectorSource(text))
+docs <- VCorpus(VectorSource(tekst))
 tdm <- TermDocumentMatrix(docs)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m), decreasing=TRUE)
 
 
-tokeny <- data.frame(Review = names(v), freq = v, stringsAsFactors = FALSE)
+tokeny <- data.frame(Review = names(v), freq = v, stringsAsFactors = F)
 tokeny_data <- as_tibble(tokeny)
 
 
@@ -31,6 +31,7 @@ tokeny_data <- as_tibble(tokeny)
 #-----------------------------Przed analizą sentymentu ----
 
 # Tokenizacja tekstu przy użyciu pakietu tidytext
+# library(tidytext)
 
 # Użycie unnest_tokens()
 tidy_tokeny <- tokeny_data %>%
@@ -38,6 +39,7 @@ tidy_tokeny <- tokeny_data %>%
 
 # unnest_tokens() wykonuje czyszczenie
 # Usuwa interpunkcję i białe znaki, zamienia tekst na małe litery itp.
+# tidy_tokeny
 head(tidy_tokeny, 10)
 
 
@@ -46,11 +48,19 @@ head(tidy_tokeny, 10)
 # z użyciem listy stopwords
 
 # Użycie anti_join()
+# 
+# Wiersz ramki danych po lewej stronie zostaje zachowany,
+# jeśli wartość w dopasowanej kolumnie NIE jest 
+# obecna w ramce danych po prawej stronie
+
+
+# Użycie unnest_tokens() z usuwaniem stopwords
 tidy_tokeny2 <- tokeny_data %>%
   unnest_tokens(word, Review) %>%
-  anti_join(stop_words, by = "word")
+  anti_join(stop_words)
 
 # Liczba słów została zmniejszona
+# tidy_tokeny2
 head(tidy_tokeny2, 10)
 
 # Sprawdzenie najczęściej występujących słów
@@ -66,11 +76,15 @@ head(tidy_tokeny2, 10)
 
 # Użycie inner_join()
 tidy_tokeny %>%
-  inner_join(get_sentiments("loughran"), by = "word", relationship = "many-to-many")
+  inner_join(get_sentiments("loughran"), relationship = "many-to-many")
+# Liczba słów drastycznie się zmniejszyła,
+# ponieważ inner_join zachował tylko te słowa,
+# które występowały w słowniku
+
 
 # Zliczanie sentymentu
 sentiment_review <- tidy_tokeny %>%
-  inner_join(get_sentiments("loughran"), by = "word", relationship = "many-to-many")
+  inner_join(get_sentiments("loughran"), relationship = "many-to-many")
 
 sentiment_review %>%
   count(sentiment)
@@ -101,18 +115,14 @@ word_counts <- sentiment_review2 %>%
 
 # Wizualizacja sentymentu
 if (nrow(word_counts) > 0) {
-  print(
-    ggplot(word_counts, aes(x=word2, y=n, fill=sentiment)) + 
-      geom_col(show.legend=FALSE) +
-      facet_wrap(~sentiment, scales="free") +
-      coord_flip() +
-      labs(x = "Słowa", y = "Liczba") +
-      theme_gdocs() + 
-      ggtitle("Liczba słów wg sentymentu (Loughran) - Trump") +
-      scale_fill_manual(values = c("firebrick", "darkolivegreen4"))
-  )
-} else {
-  message("Brak danych do wykresu dla słownika Loughran.")
+  ggplot(word_counts, aes(x=word2, y=n, fill=sentiment)) + 
+    geom_col(show.legend=FALSE) +
+    facet_wrap(~sentiment, scales="free") +
+    coord_flip() +
+    labs(x = "Słowa", y = "Liczba") +
+    theme_gdocs() + 
+    ggtitle("Liczba słów wg sentymentu (Loughran)") +
+    scale_fill_manual(values = c("firebrick", "darkolivegreen4"))
 }
 
 
@@ -122,7 +132,7 @@ if (nrow(word_counts) > 0) {
 
 # Zliczanie sentymentu
 sentiment_review_nrc <- tidy_tokeny %>%
-  inner_join(get_sentiments("nrc"), by = "word", relationship = "many-to-many")
+  inner_join(get_sentiments("nrc"), relationship = "many-to-many")
 
 sentiment_review_nrc %>%
   count(sentiment)
@@ -153,17 +163,13 @@ word_counts_nrc2 <- sentiment_review_nrc2 %>%
 
 # Wizualizacja sentymentu
 if (nrow(word_counts_nrc2) > 0) {
-  print(
-    ggplot(word_counts_nrc2, aes(x=word2, y=n, fill=sentiment)) + 
-      geom_col(show.legend=FALSE) +
-      facet_wrap(~sentiment, scales="free") +
-      coord_flip() +
-      labs(x = "Słowa", y = "Liczba") +
-      theme_gdocs() + 
-      ggtitle("Liczba słów wg sentymentu (NRC) - Trump")
-  )
-} else {
-  message("Brak danych do wykresu dla słownika NRC.")
+  ggplot(word_counts_nrc2, aes(x=word2, y=n, fill=sentiment)) + 
+    geom_col(show.legend=FALSE) +
+    facet_wrap(~sentiment, scales="free") +
+    coord_flip() +
+    labs(x = "Słowa", y = "Liczba") +
+    theme_gdocs() + 
+    ggtitle("Liczba słów wg sentymentu (NRC)")
 }
 
 
@@ -173,7 +179,7 @@ if (nrow(word_counts_nrc2) > 0) {
 
 # Zliczanie sentymentu
 sentiment_review_bing <- tidy_tokeny %>%
-  inner_join(get_sentiments("bing"), by = "word")
+  inner_join(get_sentiments("bing"))
 
 sentiment_review_bing %>%
   count(sentiment)
@@ -204,18 +210,14 @@ word_counts_bing2 <- sentiment_review_bing2 %>%
 
 # Wizualizacja sentymentu
 if (nrow(word_counts_bing2) > 0) {
-  print(
-    ggplot(word_counts_bing2, aes(x=word2, y=n, fill=sentiment)) + 
-      geom_col(show.legend=FALSE) +
-      facet_wrap(~sentiment, scales="free") +
-      coord_flip() +
-      labs(x = "Słowa", y = "Liczba") +
-      theme_gdocs() + 
-      ggtitle("Liczba słów wg sentymentu (Bing) - Trump") +
-      scale_fill_manual(values = c("dodgerblue4", "goldenrod1"))
-  )
-} else {
-  message("Brak danych do wykresu dla słownika Bing.")
+  ggplot(word_counts_bing2, aes(x=word2, y=n, fill=sentiment)) + 
+    geom_col(show.legend=FALSE) +
+    facet_wrap(~sentiment, scales="free") +
+    coord_flip() +
+    labs(x = "Słowa", y = "Liczba") +
+    theme_gdocs() + 
+    ggtitle("Liczba słów wg sentymentu (Bing)") +
+    scale_fill_manual(values = c("dodgerblue4", "goldenrod1"))
 }
 
 
@@ -225,7 +227,7 @@ if (nrow(word_counts_bing2) > 0) {
 
 # Zliczanie sentymentu
 sentiment_review_afinn <- tidy_tokeny %>%
-  inner_join(get_sentiments("afinn"), by = "word")
+  inner_join(get_sentiments("afinn"))
 
 sentiment_review_afinn %>%
   count(value)
@@ -256,15 +258,11 @@ word_counts_afinn3 <- sentiment_review_afinn3 %>%
 
 # Wizualizacja sentymentu
 if (nrow(word_counts_afinn3) > 0) {
-  print(
-    ggplot(word_counts_afinn3, aes(x=word2, y=n, fill=value)) + 
-      geom_col(show.legend=FALSE) +
-      facet_wrap(~value, scales="free") +
-      coord_flip() +
-      labs(x = "Słowa", y = "Liczba") +
-      theme_gdocs() + 
-      ggtitle("Liczba słów wg sentymentu (AFINN) - Trump")
-  )
-} else {
-  message("Brak danych do wykresu dla słownika AFINN.")
+  ggplot(word_counts_afinn3, aes(x=word2, y=n, fill=value)) + 
+    geom_col(show.legend=FALSE) +
+    facet_wrap(~value, scales="free") +
+    coord_flip() +
+    labs(x = "Słowa", y = "Liczba") +
+    theme_gdocs() + 
+    ggtitle("Liczba słów wg sentymentu (AFINN)")
 }
